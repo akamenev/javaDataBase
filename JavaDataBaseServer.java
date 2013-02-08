@@ -75,31 +75,47 @@ class JavaDataBaseServer extends Thread {
 			
 			switch (method) {
 				case "create":
-					if (db.create(key, value)) {
-						response = "Record: " + key + " " + value + " was added to database"; 
+					if ((key != "") && (value != "")) {
+						if (db.create(key, value)) {
+							response = "Record: " + key + " " + value + " was added to database"; 
+						} else {
+							response = "Record with key:" + key + " already exists";
+						}
 					} else {
-						response = "Record with key:" + key + " already exists";
+						response = "Illegal argument";
 					}
 					break;
 				case "read":
-					if (db.read(key) != null) {
-						response = db.read(key);
+					if (key != "") {
+						if (db.read(key) != null) {
+							response = db.read(key);
+						} else {
+							response = "Record with key: " + key + " was not found";
+						}
 					} else {
-						response = "Record with key: " + key + " was not found";
+						response = "Illegal argument";
 					}
 					break;
 				case "update":
-					if (db.update(key, value)) {
-						response = "Record with key: " + key + " was updated";
+					if ((key != "") && (value != "")) {
+						if (db.update(key, value)) {
+							response = "Record with key: " + key + " was updated";
+						} else {
+							response = "Record with key: " + key + " was not found";
+						}
 					} else {
-						response = "Record with key: " + key + " was not found";
+						response = "Illegal argument";
 					}
 					break;
 				case "delete":
-					if (db.delete(key)) {
-						response = "Record with key: " + key + " was deleted";
+					if (key != "") {
+						if (db.delete(key)) {
+							response = "Record with key: " + key + " was deleted";
+						} else {
+							response = "Record with key: " + key + " was not found";
+						}
 					} else {
-						response = "Record with key: " + key + " was not found";
+						response = "Illegal argument";
 					}
 					break;
 				case "flush":
@@ -112,7 +128,7 @@ class JavaDataBaseServer extends Thread {
 			}
 			
 			
-			System.out.println(method + "\n" + key + "\n" + value);
+			//System.out.println(method + "\n" + key + "\n" + value);
 			
 			
 			os.write(response.getBytes());
