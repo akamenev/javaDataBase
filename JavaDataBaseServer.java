@@ -1,16 +1,39 @@
 import java.io.*;
 import java.net.*;
 import java.util.StringTokenizer;
+import java.util.ArrayList;
 
 class JavaDataBaseServer extends Thread {
 	Socket serverSocket;
 	static DataBase db;
+	static ArrayList<String> slavePorts;
+	static ArrayList<String> slaveAddr;
+	static int slaveNumber;
 	
 	public static void main(String[] args) {
 		db = new DataBase("db.json");
+		slavePorts = new ArrayList<String>();
+		slaveAddr = new ArrayList<String>();
+		Boolean isMaster = false;
+		slaveNumber = 0;
 		
+		if ((args.length > 1) && (args.length % 2 == 0)) {
+			if (args[1].equals("-m")) {
+				slaveNumber = args.length/2 - 1;
+				for (int i = 2; i < args.length; i++) {
+					if (i%2 == 0) {
+						slaveAddr.add(args[i]);
+					} else {
+						slavePorts.add(args[i]);
+					}
+				}
+			}
+		}
+		
+		//System.out.println(slavePorts.get(0));
+			
 		try {
-			ServerSocket server = new ServerSocket(8082);
+			ServerSocket server = new ServerSocket(Integer.parseInt(args[0]));
 			System.out.println("JavaDataBase server is started");
 			
 			// listening port
@@ -46,7 +69,7 @@ class JavaDataBaseServer extends Thread {
 			String response = "";
 			
 			System.out.println("\n" + data + "\n");
-	
+			String inputRequest = data;
 			data = data.substring(0, data.indexOf("\r"));
 			data = data.replace("HTTP/1.1", "");
 			String method = "";
@@ -77,7 +100,11 @@ class JavaDataBaseServer extends Thread {
 				case "create":
 					if ((key != "") && (value != "")) {
 						if (db.create(key, value)) {
-							response = "Record: " + key + " " + value + " was added to database"; 
+							response = "Record: " + key + " " + value + " was added to database";
+							for (int i = 0; i < slaveNumber; i ++) {
+								Socket slaveSocket = new Socket(slaveAddr.get(i), Integer.parseInt(slavePorts.get(i)));
+								slaveSocket.getOutputStream().write(inputRequest.getBytes());
+							}
 						} else {
 							response = "Record with key:" + key + " already exists";
 						}
@@ -100,6 +127,10 @@ class JavaDataBaseServer extends Thread {
 					if ((key != "") && (value != "")) {
 						if (db.update(key, value)) {
 							response = "Record with key: " + key + " was updated";
+							for (int i = 0; i < slaveNumber; i ++) {
+								Socket slaveSocket = new Socket(slaveAddr.get(i), Integer.parseInt(slavePorts.get(i)));
+								slaveSocket.getOutputStream().write(inputRequest.getBytes());
+							}
 						} else {
 							response = "Record with key: " + key + " was not found";
 						}
@@ -111,6 +142,10 @@ class JavaDataBaseServer extends Thread {
 					if (key != "") {
 						if (db.delete(key)) {
 							response = "Record with key: " + key + " was deleted";
+							for (int i = 0; i < slaveNumber; i ++) {
+								Socket slaveSocket = new Socket(slaveAddr.get(i), Integer.parseInt(slavePorts.get(i)));
+								slaveSocket.getOutputStream().write(inputRequest.getBytes());
+							}
 						} else {
 							response = "Record with key: " + key + " was not found";
 						}
@@ -121,6 +156,10 @@ class JavaDataBaseServer extends Thread {
 				case "flush":
 					db.flush();
 					response = "Database was saved";
+					for (int i = 0; i < slaveNumber; i ++) {
+								Socket slaveSocket = new Socket(slaveAddr.get(i), Integer.parseInt(slavePorts.get(i)));
+								slaveSocket.getOutputStream().write(inputRequest.getBytes());
+							}	
 					break;
 				case "size":
 					response = db.size() + " records in database";

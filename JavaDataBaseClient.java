@@ -54,7 +54,7 @@ class JavaDataBaseClient {
 			byte buf[] = new byte[64*1024];
 			int r = socket.getInputStream().read(buf);
 			data = new String(buf, 0, r);
-			
+			socket.close();
 			
 		} catch (Exception e) {
 			e.printStackTrace();
